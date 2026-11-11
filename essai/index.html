@@ -374,6 +374,7 @@ const meDialog = document.createElement('dialog'); meDialog.id = 'me-dialog';
 meDialog.innerHTML = '<form method="dialog"><h2>Comment tu t’appelles ?</h2><p>Ton prénom s’affichera sur les cadeaux que tu choisis, pour que les autres sachent qu’ils sont pris. Par exemple : Mamie Jo, Tonton Marc.</p><input id="me-input" maxlength="60" autocomplete="given-name" placeholder="Ton prénom"><div class="row"><button value="later" type="submit">Plus tard</button><button value="ok" type="submit">C’est moi</button></div></form>';
 document.body.appendChild(meDialog);
 function askName() {
+  if (meDialog.open) meDialog.close('later'); // jamais deux demandes en même temps
   return new Promise(resolve => {
     const input = meDialog.querySelector('#me-input'); input.value = myName;
     meDialog.addEventListener('close', function done() {
