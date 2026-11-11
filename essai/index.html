@@ -373,15 +373,23 @@ drawMe();
 const meDialog = document.createElement('dialog'); meDialog.id = 'me-dialog';
 meDialog.innerHTML = '<form method="dialog"><h2>Comment tu t’appelles ?</h2><p>Ton prénom s’affichera sur les cadeaux que tu choisis, pour que les autres sachent qu’ils sont pris. Par exemple : Mamie Jo, Tonton Marc.</p><input id="me-input" maxlength="60" autocomplete="given-name" placeholder="Ton prénom"><div class="row"><button value="later" type="submit">Plus tard</button><button value="ok" type="submit">C’est moi</button></div></form>';
 document.body.appendChild(meDialog);
+// On traite l'appui sur les boutons directement (l'événement « close » n'est pas fiable partout).
+let nameWaiters = [];
+function finishName(ok) {
+  const v = meDialog.querySelector('#me-input').value.trim().slice(0, 60);
+  if (meDialog.open) meDialog.close();
+  if (ok && v) { myName = v; try { localStorage.setItem(NAME_KEY, v); } catch (e) {} drawMe(); }
+  const result = ok && v ? v : '';
+  nameWaiters.splice(0).forEach(fn => fn(result));
+}
+meDialog.querySelector('form').addEventListener('submit', ev => { ev.preventDefault(); finishName(!!(ev.submitter && ev.submitter.value === 'ok') || !ev.submitter); });
+meDialog.addEventListener('cancel', ev => { ev.preventDefault(); finishName(false); });
+meDialog.querySelector('#me-input').addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); finishName(true); } });
 function askName() {
-  if (meDialog.open) meDialog.close('later'); // jamais deux demandes en même temps
   return new Promise(resolve => {
+    nameWaiters.push(resolve);
+    if (meDialog.open) return;
     const input = meDialog.querySelector('#me-input'); input.value = myName;
-    meDialog.addEventListener('close', function done() {
-      meDialog.removeEventListener('close', done);
-      const v = input.value.trim().slice(0, 60);
-      if (meDialog.returnValue === 'ok' && v) { myName = v; try { localStorage.setItem(NAME_KEY, v); } catch (e) {} drawMe(); resolve(v); } else resolve('');
-    });
     meDialog.showModal(); input.focus();
   });
 }
