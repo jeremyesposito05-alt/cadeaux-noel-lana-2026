@@ -116,9 +116,9 @@ html.accueil-ouvert #son-btn{background:#ffffff26}
 <div class="deco" aria-hidden="true">🎄✨🎁✨🎄</div>
 <h1 id="accueil-titre">Les listes des meilleurs enfants du monde<span class="or">2026 !</span></h1>
 <div class="choix">
- <button type="button" class="logan-noel bientot" data-liste="logan-noel"><span class="emo">🎄</span><span>Logan · Noël<small>La liste arrive bientôt</small></span><span class="tag">Bientôt</span></button>
- <button type="button" class="lana" data-liste="lana-noel"><span class="emo">🎀</span><span>Lana · Noël<small>Voir ses idées de cadeaux</small></span></button>
- <button type="button" class="logan-anniv bientot" data-liste="logan-anniv"><span class="emo">🎂</span><span>Logan · Anniversaire<small>La liste arrive bientôt</small></span><span class="tag">Bientôt</span></button>
+ <button type="button" class="logan-noel" data-liste="logan-noel" data-chemin="logan-noel/"><span class="emo">🎄</span><span>Logan · Noël<small>Voir ses idées de cadeaux</small></span></button>
+ <button type="button" class="lana" data-liste="lana-noel" data-chemin=""><span class="emo">🎀</span><span>Lana · Noël<small>Voir ses idées de cadeaux</small></span></button>
+ <button type="button" class="logan-anniv" data-liste="logan-anniv" data-chemin="logan-anniversaire/"><span class="emo">🎂</span><span>Logan · Anniversaire<small>Ses 11 ans, le 7 avril 2027</small></span></button>
 </div>
 <p class="toast" id="accueil-toast" aria-live="polite"></p>
 <p class="pied">Touche une liste pour l’ouvrir 🎶</p>
@@ -128,21 +128,27 @@ html.accueil-ouvert #son-btn{background:#ffffff26}
 <audio id="musique" src="../musique-noel.mp3" loop preload="none"></audio>
 <script>
 (function(){
+ /* Une page par liste : la racine (Lana), logan-noel/, logan-anniversaire/.
+    LISTE = la liste de cette page ; RACINE = chemin vers la racine du site. */
+ var LISTE='lana-noel',RACINE='',OUVRIR=true&&location.hash!=='#liste';
  var html=document.documentElement,audio=document.getElementById('musique'),son=document.getElementById('son-btn'),KEY='cadeaux-musique-coupee';
  var coupee=false;try{coupee=localStorage.getItem(KEY)==='1'}catch(e){}
- audio.volume=.35;
- html.classList.add('accueil-ouvert');
- function dessine(){son.textContent=coupee?'🔇':'🔊';son.setAttribute('aria-label',coupee?'Remettre la musique':'Couper la musique')}
- function joue(){if(coupee)return;var p=audio.play();if(p&&p.catch)p.catch(function(){})}
+ if(!audio.getAttribute('src')){audio=null;son.remove();son=null}
+ if(audio)audio.volume=.35;
+ if(OUVRIR)html.classList.add('accueil-ouvert');
+ document.querySelectorAll('#accueil button[data-liste="'+LISTE+'"]').forEach(function(b){b.setAttribute('aria-current','page')});
+ function dessine(){if(!son)return;son.textContent=coupee?'🔇':'🔊';son.setAttribute('aria-label',coupee?'Remettre la musique':'Couper la musique')}
+ function joue(){if(coupee||!audio)return;var p=audio.play();if(p&&p.catch)p.catch(function(){})}
  dessine();
- son.addEventListener('click',function(){coupee=!coupee;try{localStorage.setItem(KEY,coupee?'1':'0')}catch(e){}dessine();if(coupee)audio.pause();else joue()});
- document.addEventListener('visibilitychange',function(){if(document.hidden)audio.pause();else if(!html.classList.contains('musique-attente'))joue()});
+ if(son)son.addEventListener('click',function(ev){ev.stopPropagation();coupee=!coupee;try{localStorage.setItem(KEY,coupee?'1':'0')}catch(e){}dessine();if(coupee)audio.pause();else{html.classList.remove('musique-attente');joue()}});
+ document.addEventListener('visibilitychange',function(){if(!audio)return;if(document.hidden)audio.pause();else if(!html.classList.contains('musique-attente'))joue()});
  html.classList.add('musique-attente');
- var toastTimer;
+ // Arrivé directement sur une liste : la musique démarre au premier appui (les navigateurs l'exigent).
+ if(!OUVRIR)document.addEventListener('pointerdown',function(){if(html.classList.contains('musique-attente')){html.classList.remove('musique-attente');joue()}},{once:true});
  document.getElementById('accueil').addEventListener('click',function(ev){
   var b=ev.target.closest('button[data-liste]');if(!b)return;
+  if(b.dataset.liste!==LISTE){location.href=RACINE+b.dataset.chemin+'#liste';return}
   html.classList.remove('musique-attente');joue();
-  if(b.classList.contains('bientot')){var t=document.getElementById('accueil-toast');t.textContent='🎁 La liste de Logan arrive bientôt !';clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.textContent=''},3500);return}
   html.classList.remove('accueil-ouvert');window.scrollTo(0,0);
   document.dispatchEvent(new CustomEvent('liste-ouverte',{detail:{liste:b.dataset.liste}}));
  });
